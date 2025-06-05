@@ -1,0 +1,230 @@
+\chapter{Introduction}
+
+This chapter introduces the concepts necessary to understand what an external Mahlo universe is and why it is interesting.
+
+\section{Dependent type theory}
+
+\emph{Dependent type theory} (DTT) \cite{martin2021intuitionistic} is one of possible foundations of mathematics. One can also think of it as a convenient programming language for proofs, since it is often used in proof assistants. As with any other type system for programming languages, the main notions are types, terms, contexts and substitutions. The difference between DTT and other type systems is that types can depend on terms. Further in the text, type theory will always mean DTT and sometimes will be abbreviated to TT.
+
+In the example below we define a function that returns the unit type if a natural number is zero and the empty type otherwise. If we get a term of this type for some $n$, the $n$ must be equal to zero. The example is written in the proof assistant Agda \cite{norell2009dependently}. In the thesis, any code with syntax highlighting is Agda and any without it is not Agda.
+
+\input{include/iszero.tex}
+
+In the following subsections basic rules for DTT will be introduced. For a more thorough introduction refer to Hofmann \cite{hofmann1997syntax}.
+
+\subsection{Contexts}
+
+\begin{mathpar}
+    \inferrule*[right=EmptyCtx]{ }{\cdot\ \text{Context}}
+\and
+    \inferrule*[right=ExtendCtx]{\Gamma\ \text{Context} \quad \Gamma \vdash A\ \text{Type}}{\Gamma, x : A\ \text{Context}}
+\end{mathpar}
+
+To form contexts, either we take the empty context or we extend a context with a type in that context. Note that the type depends on the context. In a simply typed system this would not be the case. In the rest of the rules all mentioned contexts will be assumed valid. Some types are also assumed valid as long as it is obvious where they come from.
+
+\subsection{Working with contexts}
+
+\begin{mathpar}
+\inferrule*[right=Var]
+    {\Gamma \vdash A\ \text{Type}}
+  {\Gamma , x : A \vdash x : A}
+\and
+\inferrule*[right=Weakening]
+  { \Gamma, \Delta \vdash a : A \quad \Gamma \vdash B\ \text{Type} }
+  { \Gamma, x : B, \Delta \vdash a : A }
+
+\inferrule*[right=Subst-Tm]
+  {
+    \Gamma \vdash t : T \\
+    \Gamma, x:T, \Delta \vdash u : U
+  }
+  {
+    \Gamma, \Delta \vdash u[t / x] : U[t / x]
+  }
+
+\inferrule*[right=Subst-Ty]
+  {
+    \Gamma \vdash t : T \\
+    \Gamma, x:T, \Delta \vdash U\ \text{Type}
+  }
+  {
+    \Gamma, \Delta \vdash U[t / x]\ \text{Type}
+  }
+\end{mathpar}
+
+The variable rule says that a variable from the context can be used as a valid term of its type.
+
+The weakening rule says that if something holds in some context then adding something to that context does not change that. In other words, it says that extra assumptions do not interfere with a proof.
+
+The substitution rules allow substituting a free variable in a term or a type. We use capture-free substitution.
+
+\subsection{Dependent function type}
+
+\begin{mathpar}
+\inferrule*[right=Pi-Form]
+  {\Gamma \vdash A\ \text{Type} \quad \Gamma, x : A \vdash B\ \text{Type}}
+  {\Gamma \vdash \Pi\ A\ B\ \text{Type}}
+
+\inferrule*[right=Pi-Intro]
+  {\Gamma, x : A \vdash t : B}
+  {\Gamma \vdash \lambda x.t : \Pi\ A\ B}
+
+\inferrule*[right=Pi-Elim]
+  {\Gamma \vdash f : \Pi\ A\ B \quad \Gamma \vdash a : A}
+  {\Gamma \vdash f\,a : B[a/x]}
+\end{mathpar}
+
+Dependent function types or Pi types allow us to truly use dependent types, since the return type of such a function depends on the term we pass it.
+
+The introduction rule says that given a term in an extended context we can make a function term by binding the variable. Similarly, the elimination rule says that we can apply the function to a term by substituting the bound variable by the term.
+
+One can think of the dependent function type as the $\forall$ operator from classical logic. We can see this in the introduction rule since to have a proof that $\Pi\ A\ B$ one has to form a function term which depends on a variable and thus cannot use some special structure of some concrete $x : A$.
+
+\subsection{Universes}
+
+\begin{mathpar}
+\inferrule*[right=\text{U}-Form]
+  { }
+  { \Gamma \vdash \text{U}\ \text{Type} }
+
+\inferrule*[right=\text{U}-Intro]
+  { \Gamma \vdash a\ \text{Type} }
+  { \Gamma \vdash a : \text{U} }
+
+\inferrule*[right=\text{U}-Elim]
+  { \Gamma \vdash a : \text{U} }
+  { \Gamma \vdash a\ \text{Type} }
+\end{mathpar}
+
+Universes allow us to quantify over types. The introduction and elimination rules allow $\text{U}$ to be a type of $\text{U}$ which causes the type theory to be inconsistent \cite{girard1972interpretation, hurkens1995simplification}. The usual solution is to have a hierarchy of universes. We shall call a function into a universe a \emph{type family}.
+
+The universes in the rules are à la Russell, since the terms of the universe are the actual types. In the thesis we only consider such universes. However, there are numerous other notions of universes. A notable example are universes à la Tarski which contain codes of a type instead of the types themselves.
+
+In set theory simple universes correspond to some inaccessible cardinals since they are closed under function types. 
+
+\subsection{Natural numbers} \label{sec:nat}
+
+\begin{mathpar}
+\inferrule*[right=Nat-Form]
+  { }
+  {\Gamma \vdash \mathbb{N}\ \text{Type}}
+
+\inferrule*[right=Zero-Intro]
+  { }
+  {\Gamma \vdash 0 : \mathbb{N}}
+
+\inferrule*[right=Succ-Intro]
+  {\Gamma \vdash n : \mathbb{N}}
+  {\Gamma \vdash \mathsf{succ}(n) : \mathbb{N}}
+
+\inferrule*[right=Nat-Elim]
+  {
+    \Gamma \vdash C : \mathbb{N} \rightarrow \mathsf{U} \\
+    \Gamma \vdash c_0 : C(0) \\
+    \Gamma \vdash c_s : \Pi (n : \mathbb{N}).\, C(n) \rightarrow C(\mathsf{succ}(n)) \\
+    \Gamma \vdash n : \mathbb{N}
+  }
+  {\Gamma \vdash \mathsf{ind}_{\mathbb{N}}(C, c_0, c_s, n) : C(n)}
+
+\inferrule*[right=Nat-$\beta$-zero]
+  {\Gamma \vdash C : \mathbb{N} \rightarrow \mathsf{U} \\
+   \Gamma \vdash c_0 : C(0) \\
+   \Gamma \vdash c_s : \Pi (n : \mathbb{N}). C(n) \to C(\mathsf{succ}(n))}
+  {\Gamma \vdash \mathsf{ind}_{\mathbb{N}}(C, c_0, c_s, 0) \doteq z}
+
+\inferrule*[right=Nat-$\beta$-succ]
+  {\Gamma \vdash C : \mathbb{N} \rightarrow \mathsf{U} \\
+   \Gamma \vdash c_0 : C(0) \\
+   \Gamma \vdash c_s : \Pi (n : \mathbb{N}). C(n) \to C(\mathsf{succ}(n)) \\
+   \Gamma \vdash n : \mathbb{N}}
+  {\Gamma \vdash \mathsf{ind}_{\mathbb{N}}(C, c_0, c_s, \mathsf{succ}(n)) \doteq c_s(\mathsf{ind}_{\mathbb{N}}(C, c_0, c_s, n))}
+\end{mathpar}
+
+Natural numbers are an example of an inductive type. The most interesting rule here is the elimination rule. It is precisely the induction principle for natural numbers. Given a predicate C, a proof that the base case holds for C and a proof that the induction step holds for C the predicate must hold for any $n$. The zero $\beta$ computation rule says that the induction principle computes to the base case at zero.
+
+Note, that unlike classical mathematics type theory has two notions of equality. The first one is definitional equality, which corresponds to the computational behaviour of type theory. For example, the Nat-$\beta$-zero rule introduces one such equality. Note that we use $\doteq$ for definitional equality. We will introduce the other notion in the next subsection.
+
+\subsection{Identity type}
+
+\begin{mathpar}
+\inferrule*[right=Id-Form]
+  {\Gamma \vdash a : A \\
+   \Gamma \vdash b : A}
+  {\Gamma \vdash \mathsf{Id}_A(a, b) : \text{Type}}
+\and
+
+\inferrule*[right=Id-Intro]
+  {\Gamma \vdash a : A}
+  {\Gamma \vdash \mathsf{refl}_A(a) : \mathsf{Id}_A(a, a)}
+\and
+
+\inferrule*[right=Id-Elim]
+  {\Gamma, x : A, y : A, p : \mathsf{Id}_A(x, y) \vdash C(x, y, p)\ \text{Type} \\
+   \Gamma, x : A \vdash d : C(x, x, \mathsf{refl}_A(x)) \\
+   \Gamma \vdash a : A \\
+   \Gamma \vdash b : A \\
+   \Gamma \vdash p : \mathsf{Id}_A(a, b)}
+  {\Gamma \vdash \mathsf{J}(d, a, b, p) : C(a, b, p)}
+
+\inferrule*[right=Id-$\beta$]
+{\Gamma, x : A, y : A, p : \mathsf{Id}_A(x, y) \vdash C(x, y, p)\ \text{Type} \\
+   \Gamma, x : A \vdash d : C(x, x, \mathsf{refl}_A(x)) \\
+   \Gamma \vdash t : A \\
+   \Gamma \vdash \mathsf{J}(d, t, t, \mathsf{refl}_A(t)) : C(t, t, \mathsf{refl}_A(t))
+  }
+  {\Gamma \vdash \mathsf{J}(d, t, t, \mathsf{refl}_A(t)) \doteq d(t) : C(t, t, \mathsf{refl}_A(t))}
+\end{mathpar}
+
+The second type of equality in type theory is the identity type. Unlike definitional equality one has to prove that two terms are the same by constructing term of their identity type. The only constructor for the equality type is $\mathsf{refl}$, which witnesses the equality of a term with itself. Terms of an identity type can be eliminated by the $\textsc{Id-Elim}$ rule (also known as J-rule), which states that to prove a property depending on an equality it is enough to prove it for $\mathsf{refl}$.
+
+\subsubsection{Extensional type theory}\label{sec:ext}
+
+One of initial questions about DTT was whether two terms of an identity type are equal. This was disproven by Hofmann and Streicher \cite{hofmann1998groupoid}. If we want such a property, we have to state it as an additional axiom. One type theory that assumes this axiom is \emph{extensional type theory} (ETT). ETT assumes two additional axioms, the just mentioned \emph{uniqueness of identity proofs} (UIP) and the \emph {equality reflection axiom}.
+
+\begin{mathpar}
+\inferrule*[right=UIP]
+  { \Gamma \vdash p : \mathsf{Id}_A(a,b) \\ \Gamma \vdash q : \mathsf{Id}_A(a,b) }
+  { \Gamma \vdash \mathsf{UIP}(p,q) : \mathsf{Id}_{\mathsf{Id}_A(a,b)}(p,q) }
+
+\inferrule*[right=Id-Reflection]
+  { \Gamma \vdash p : \mathsf{Id}_A(a,b) }
+  { \Gamma \vdash a \doteq b }
+\end{mathpar}
+
+Uniqueness of identity proofs states that every equality proof is $\mathsf{refl}$ and equality reflection states that provable identity implies definitional equality. $\textsc{Id-Reflection}$ causes definitional equality to be undecidable since one can assume the rules of SKI-calculus as equalities in a context which makes checking whether two terms of such a type equivalent to the halting problem \cite{hofmann1995extensional}. This means that extensional type theory can be hardly used in proof assistants but it is still consistent since the set-theoretic model does not distinguish between the two equalities anyway. In this sense using extensional type theory is similar to set theory and so it is more useful for paper proofs, which will also be our use for it.
+
+\section{Induction-recursion}
+
+IR is a way to allow a type theory to have more inductive types. In particular we can define a datatype and a function acting on the datatype at the same time (mutually). The function can act on the datatype even in negative positions which is crucial when modeling universes.
+
+It was first used by Per Martin-Löf to specify the Tarski universe and later axiomatized by Dybjer \cite{dybjer2000general}. Its most common use case is to prove metatheoretical properties of TTs \cite{abel2017decidability}. Having IR in one universe allows us to define a Nat-indexed hierarchy within the universe. Hence, IR is a strong feature in a type theory, and we need even stronger assumptions in the metatheory to prove properties about such a type theory.
+
+Below we have a type theory with a universe hierarchy indexed by natural numbers \cite{mcbride2015datatypes}. The module Step represents individual universe levels of the TT where the type family ensures that the smaller universe has a code in the bigger universe and that the elements of the smaller universe also have codes in the bigger universe. The operators $₁\_$ and $₂\_$ are just the corresponding projections of the dependent pair type. There are also some basic type formers such as dependent functions and products and natural numbers. Using Step we instantiate the \texttt{UEl} function which represents for each \texttt{n} the \texttt{n}-th universe \texttt{U n} and its interpretation function into the Agda universe \texttt{El}.
+
+\input{include/IR}
+
+\section{Mahlo universe}
+
+The external Mahlo universe is defined as a universe which for every mapping between two type families contains a subuniverse closed under that mapping. It was first discussed by Setzer \cite{setzer1996model}. Further in the text we will use "Mahlo universe" to refer to external Mahlo universes.
+
+Note that an elimination principle for types in a Mahlo universe yields an inconsistency \cite{palmgren1998universes}. One can think of this as a positivity issue since it would mean that we would have a code in $Set$ for any function $Set \to Set$ but this has a negative occurrence of $Set$.
+
+The definition we will be using is derived from Figure \ref{fig:doel} from Doel \cite{dandoelunivs}, which in turns takes its definition from Setzer \cite{setzer2005universes}. In the definition, \texttt{Ma} specifies Mahlo subuniverses, and the \texttt{U+} and \texttt{El+} parameters together yield a function between type families. Note, that the definition implements the Mahlo universe using induction-recursion, so if a universe supports induction-recursion, it is a Mahlo universe.
+
+\input{include/MahloDoel}
+
+\newpage
+
+In our definition below, we make some changes compared to Setzer's version. Our version has two advantages. Firstly, it has fewer rules. Secondly, instead of fixing some base type formers, we parameterize the subuniverses with a base type family, given by \texttt{U0} and \texttt{El0}. This can be used to specify base types as needed. The eliminator for the Mahlo universe is derived as the Dybjer-Setzer eliminator for the IR definition of the Mahlo subuniverse \cite{dybjer1999finite}.
+
+
+\input{include/MahloEl}
+
+We prove that our definition is at least as strong as Setzer's in the following translation. Constructors of \texttt{U} which are not dependent are recovered from \texttt{El0'} and those with type dependencies are recovered from \texttt{El+'}. Finally, the type family mapping can be recovered from \texttt{El+}.
+
+\input{include/MahloTrans}
+
+For example, using our definition of Mahlo we can define some IR definitions but it is not clear what the relationship between Mahlo and IR is. Using this definition of Mahlo, we can define the same Nat-indexed hierarchy of universes in Figure \ref{fig:maex} as in Figure \ref{fig:ir}. We again have a \texttt{Step} module for each universe level and we interpret the family exactly the same way. \texttt{El0} and \texttt{El+} in this case provide us interpretations of the type formers in the Agda universe.
+
+\input{include/MahloEx}
+

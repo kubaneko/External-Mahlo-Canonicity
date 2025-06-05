@@ -1,0 +1,42 @@
+\begin{figure}
+\begin{verbatim}
+Con  : Set
+Ty   : Con → Set
+Tm   : (Γ : Con) → Ty Γ → Set
+Sub  : Con → Con → Set
+
+∙    : Con
+_,_  : (Γ : Con) → Ty Γ → Con
+
+_[_] : Ty Δ → Sub Γ Δ → Ty Γ
+
+ε    : Sub Γ ∙
+_,_  : {A : Ty Δ} → (σ : Sub Γ Δ) → Tm Γ (A[σ]) → Sub Γ (Δ, A)
+
+εη   : (σ : Sub Γ ∙) → σ = ε
+,∘   : (σ, t) ∘ δ = (σ ∘ δ, t[δ])
+
+id   : Sub Γ Γ
+[id] : {A : Ty Γ} → A[id] = A
+
+_∘_  : Sub Δ Σ → Sub Γ Δ → Sub Γ Σ
+ass  : σ ∘ (δ ∘ γ) = (σ ∘ δ) ∘ γ
+idl  : id ∘ σ      = σ
+idr  : σ ∘ id      = σ
+
+[∘]  : A[σ ∘ δ] = A[σ][δ]
+
+_[_] : Tm Δ A → (σ : Sub Γ Δ) → Tm Γ (A[σ])
+
+
+p    : Sub (Γ, A) Γ
+p∘   : p ∘ (σ, t) = σ
+
+q    : Tm (Γ, A) (A[p])
+q[]  : q[σ, t] = t
+
+,η   : (p, q) = id
+\end{verbatim}
+\caption{Basic rules of CwF as a GAT}
+\label{fig:cwf}
+\end{figure}

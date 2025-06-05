@@ -1,0 +1,13 @@
+maybe colour CwFs
+
+Universe in title
+
+Type theoretical gluing
+
+not monospace - latex fonts?
+    - fonts to use?
+    - default latex, mathsf (not italic), mathit
+
+conversion is decidable - normalization
+    - can be shown through normalization
+    - there was another property that I forgot? needed for typechecking

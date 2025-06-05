@@ -1,0 +1,251 @@
+\subsection{\texttt{El} equations for the Mahlo canonicity model}
+
+Here we prove that the El predicate for the Mahlo universe respects the equations of El of Mahlo in syntax.
+
+\begin{verbatim}
+ElEl0ᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ) → (u : Tm Γ U0)
+            → (el0 : Tm Γ (El0 $ u)) →
+  (El El0 U+ El+ $$ (El0' u))ᴾ γ γᴾ el0[γ]
+  ≡
+  (El0 u)ᴾ γ γᴾ el0[γ]
+
+  Elᴾ ... El0[γ] (El0ᴾ γ γᴾ) ... (El0' u[γ]) ((El0' u)ᴾ γ γᴾ) el0[γ]
+  ≡
+  (El0 u)ᴾ γ γᴾ el0[γ]
+
+  El0ᴾ γ γᴾ u[γ] (uᴾ γ γᴾ) el0[γ]
+  ≡
+  El0ᴾ γ γᴾ u[γ] (uᴾ γ γᴾ) el0[γ]
+
+ElEl+ᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ) → (A : Tm ∙ Ma)
+          → (B : Tm ∙ El A → Ma)
+          → (C : Tm ∙ (U+ $$ (El A) $$
+                             (lam (El[p] $$ (B[p] $$ q)))))
+          → (el+ : Tm Γ (El {U+} {El+} (El+ $$ C))) →
+  (El {U+} {El+} $$ (El+ A B C))ᴾ  γ γᴾ el+[γ]
+  ≡
+  (El+ (El $$ A) (lam (El[p] $$ B[p] $$ q)) (El C))ᴾ γ γᴾ el+[γ]
+
+  El+ᴾ (El $$ A[γ]) (Elᴾ A[γ] (Aᴾ γ γᴾ))
+     ((lam (El[p] $$ (B[p] $$ q)))[γ])
+     (λ a aᴾ → Elᴾ ((B $$ a)[γ]) (Bᴾ γ γᴾ a aᴾ))
+     C[γ] (Cᴾ γ γᴾ) el+[γ]
+  ≡
+  El+ᴾ (El $$ A[γ]) (Elᴾ A[γ] (Aᴾ γ γᴾ))
+                  ((lam (El[p] $$ (B[p] $$ q)))[γ])
+      (λ a aᴾ → Elᴾ ((app B)[γ,a]) (Bᴾ γ γᴾ a aᴾ))
+      C[γ] (Cᴾ γ γᴾ) el+[γ]
+\end{verbatim}
+
+\subsection{\texttt{maElim} equations for the Mahlo canonicity model}
+
+Checking that the $\beta$ rules for eliminator of \texttt{Ma} are respected by the canonicity model.
+
+\begin{verbatim}
+El0maElimᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ) →
+        {j : MetaNat}(P : Tm Γ (Ma → (U j))
+        → (el0 : Tm Γ (U0 → P $$ (El0' $$ q)))
+        → (el+ : Tm Γ (Ma → P $$ q → (El $$ q¹ → Ma)
+          → (lam (P[p] $$ (q¹ $$ q)))
+          → U+ $$ (El $$ q³) $$ lam (El[p] $$ (q² $$ q))
+          → P $$ (El+' $$ q⁴ $$ q² $$ q))) →
+        (x : Tm Γ U0) →
+  (maElim P el0 el+ (El0' x))ᴾ γ γᴾ
+  ≡
+  (el0 x)ᴾ γ γᴾ
+
+  MaᴾElim P[γ] (Pᴾ γ γᴾ)
+      el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ) el+[γ]
+      (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+        el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+      (El0' x[γ]) (El0'ᴾ x[γ] (xᴾ γ γᴾ))
+  ≡
+  el0ᴾ γ γᴾ x[γ] (xᴾ γ γᴾ)
+
+  (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ) x[γ] (xᴾ γ γᴾ)
+  ≡
+  el0ᴾ γ γᴾ x[γ] (xᴾ γ γᴾ)
+
+  el0ᴾ γ γᴾ x[γ] (xᴾ γ γᴾ)
+  ≡
+  el0ᴾ γ γᴾ x[γ] (xᴾ γ γᴾ)
+
+El+maElimᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ) →
+        {j : MetaNat}(P : Tm Γ (Ma → (U j))
+        → (el0 : Tm Γ (U0 → P $$ (El0' $$ q)))
+        → (el+ : Tm Γ (Ma → P $$ q → (El $$ q¹ → Ma)
+          → (lam (P[p] $$ (q¹ $$ q)))
+          → U+ $$ (El $$ q³) $$ (lam (El[p] $$ (q² $$ q)))
+          → P $$ (El+'  → (Aᴾ : Maᴾ A)$$ q⁴ $$ q² $$ q)))
+          → (a : Tm ∙ Ma) → (b : Tm ∙ (El $$ A → Ma))
+          → (x : Tm ∙ (U+ $$ (El $$ A) $$
+                             (lam (El[p] $$ (B[p] $$ q)))))
+  (maElim P el0 el+ (El+' a b x))ᴾ γ γᴾ
+  ≡
+  (el+ $$ a $$
+    (maElim P el0 el+ a) $$ b $$
+    (lam (maElim P[p] el0[p] el+[p] (b[p] $$ q)))
+    $$ x)ᴾ γ γᴾ
+
+  MaᴾElim P[γ] (Pᴾ γ γᴾ)
+      el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ) el+[γ]
+      (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+        el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+      (El+' a[γ] b[γ] x[γ])
+      (El+'ᴾ a[γ] (aᴾ γ γᴾ)
+        b[γ]
+        (λ A Aᴾ → bᴾ γ γᴾ A Aᴾ) x[γ] (xᴾ γ γᴾ))
+  ≡
+  el+ᴾ γ γᴾ a[γ] (aᴾ γ γᴾ)
+    (maElim P el0 el+ a)[γ]
+    ((maElim P el0 el+ a)ᴾ γ γᴾ)
+    b[γ] (λ A Aᴾ → bᴾ γ γᴾ A Aᴾ)
+    (λ A → maElim P[γ] el0[γ] el+[γ] (b[γ] $$ A))
+    (λ A Aᴾ → (maElim P el0 el+ (b $$ a))ᴾ γ γᴾ a aᵖ)
+    x[γ] (x γ γᴾ)
+
+  (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+        el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+       a[γ] (aᴾ γ γᴾ) (maElim P[γ] el0[γ] el+[γ] a[γ])
+      (MaᴾElim P[γ] (Pᴾ γ γᴾ) el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ) el+[γ]
+        (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+          el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ) a[γ] (aᴾ γ γᴾ))
+      b[γ] (λ A Aᴾ → bᴾ γ γᴾ A Aᴾ)
+      (λ A → maElim P[γ] el0[γ] el+[γ] (B[γ] $$ A))
+      (λ A Aᴾ →
+      (MaᴾElim P[γ] (Pᴾ γ γᴾ) el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ) el+[γ]
+        (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+          el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+          ((app b[γ]) $$ A) (bᴾ γ γᴾ A Aᴾ)))
+      x[γ] (x γ γᴾ)
+  ≡
+  el+ᴾ γ γᴾ a[γ] (aᴾ γ γᴾ)
+    (maElim P el0 el+ a)[γ]
+    ((maElim P el0 el+ a)ᴾ γ γᴾ)
+    b[γ] (λ A Aᴾ → bᴾ γ γᴾ A Aᴾ)
+    (λ A → maElim P[γ] el0[γ] el+[γ] (b[γ] $$ A))
+    (λ A Aᴾ → (maElim P el0 el+ (b $$ a))ᴾ γ γᴾ a aᵖ)
+    x[γ] (x γ γᴾ)
+
+  el+ᴾ γ γᴾ a[γ] (aᴾ γ γᴾ) (maElim P[γ] el0[γ] el+[γ] a[γ])
+      (MaᴾElim P[γ] (Pᴾ γ γᴾ) el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ) el+[γ]
+        (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+          el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ) a[γ] (aᴾ γ γᴾ))
+      b[γ] (λ A Aᴾ → bᴾ γ γᴾ A Aᴾ)
+      (λ A → maElim P[γ] el0[γ] el+[γ] (B[γ] $$ A))
+      (λ A Aᴾ →
+      (MaᴾElim P[γ] (Pᴾ γ γᴾ) el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ) el+[γ]
+        (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+          el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+          ((app b[γ]) $$ A) (bᴾ γ γᴾ A Aᴾ)))
+      x[γ] (x γ γᴾ)
+  ≡
+  el+ᴾ γ γᴾ a[γ] (aᴾ γ γᴾ) (maElim P[γ] el0[γ] el+[γ] a[γ])
+      (MaᴾElim P[γ] (Pᴾ γ γᴾ) el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ)
+        el+[γ] (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+                    el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+        a[γ] (aᴾ γ γᴾ))
+      b[γ] (λ A Aᴾ → bᴾ γ γᴾ A Aᴾ)
+      (λ A → maElim P[γ] el0[γ] el+[γ] (B[γ] $$ A))
+      (λ A Aᴾ →
+        (MaᴾElim P[γ] (Pᴾ γ γᴾ) el0[γ] (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ)
+        el+[γ] (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+                  el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+          ((app b[γ]) $$ A) (bᴾ γ γᴾ A Aᴾ)))
+      x[γ] (x γ γᴾ)
+
+
+\end{verbatim}
+
+\subsection{Substitution equations for the Mahlo canonicity model}
+
+Proof that the predicates for Mahlo respect substitution.
+
+\begin{verbatim}
+subEl0ᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ) → (δ : Sub Γ Δ)
+                                    → (u : Tm Δ U0) →
+ ((El0' u)[δ])ᴾ γ γᴾ
+ ≡
+ (El0' u[δ])ᴾ γ γᴾ
+
+ (El0' u)ᴾ (δ ∘ γ) (δᴾ γ γᴾ)
+ ≡
+ (El0' u[δ])ᴾ γ γᴾ
+
+ El0'ᴾ u[δ ∘ γ] (uᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+ ≡
+ El0'ᴾ u[δ][γ] (u[δ]ᴾ γ γᴾ)
+
+ El0'ᴾ u[δ ∘ γ] (uᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+ ≡
+ El0'ᴾ u[δ ∘ γ] (uᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+
+subEl+ᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ) → (δ : Sub Γ Δ)
+        → (A : Tm Δ Ma)
+        → (B : Tm Δ (El $$ A) → Ma)
+        → (C : Tm ∙ (U+ $$ (El $$ A)
+                        $$ (lam (El[p] $$ (B[p] $$ q))))) →
+  ((El+' $$ A $$ B $$ C)[δ])ᴾ γ γᴾ
+  ≡
+  (El+' $$ A[δ] $$ B[δ] C[δ])ᴾ γ γᴾ
+
+  (El+' $$ A $$ B $$ C)ᴾ (δ ∘ γ) (δᴾ γ γᴾ)
+  ≡
+  (El+' $$ A[δ] $$ B[δ] C[δ])ᴾ γ γᴾ
+
+  El+'ᴾ A[δ ∘ γ] (Aᴾ (δ ∘ γ) (δᴾ γ γᴾ)) B[δ ∘ γ]
+    (λ a aᴾ → (Bᴾ (δ ∘ γ) (δᴾ γ γᴾ) a aᴾ)
+    C[δ ∘ γ] (Cᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+  ≡
+  El+'ᴾ A[δ][γ] (A[δ]ᴾ γ γᴾ) B[δ][γ]
+      (λ a aᴾ → (B[δ]ᴾ γ γᴾ a aᴾ) C[δ][γ] (C[δ]ᴾ γ γᴾ)
+
+  El+'ᴾ A[δ ∘ γ] (Aᴾ (δ ∘ γ) (δᴾ γ γᴾ)) B[δ ∘ γ]
+    (λ a aᴾ → (Bᴾ (δ ∘ γ) (δᴾ γ γᴾ) a aᴾ)
+    C[δ ∘ γ] (Cᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+  ≡
+  El+'ᴾ A[δ ∘ γ] (Aᴾ (δ ∘ γ) (δᴾ γ γᴾ)) B[δ ∘ γ]
+      (λ a aᴾ → (Bᴾ (δ ∘ γ) (δᴾ γ γᴾ) a aᴾ) C[δ ∘ γ]
+      (Cᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+
+submaElimᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ) → (δ : Sub Γ Δ) →
+        {j : MetaNat}(P : Tm Γ (Ma → (U j))
+        → (el0 : Tm Γ (U0 → P $$ (El0' $$ q)))
+        → (el+ : Tm Γ (Ma → P $$ q → (El $$ q¹ → Ma)
+          → (lam (P[p] $$ (q¹ $$ q)))
+          → U+ $$ (El $$ q³) $$ lam (El[p] $$ (q² $$ q))
+          → P $$ (El+' $$ q⁴ $$ q² $$ q))) →
+        (t : Tm Γ Ma) →
+ ((maElim P el0 el+ t)[δ])ᴾ γ γᴾ
+ ≡
+ (maElim P[δ] el0[δ] el+[δ] t[δ])ᴾ γ γᵖ
+
+ (maElim P el0 el+ t)ᴾ (δ ∘ γ) (δᴾ γ γᴾ)
+ ≡
+ (maElim P[δ] el0[δ] el+[δ] t[δ])ᴾ γ γᵖ
+
+ MaᴾElim P[δ ∘ γ] (Pᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+        el0[δ ∘ γ] (λ u uᴾ → el0ᴾ (δ ∘ γ) (δᴾ γ γᴾ) u uᴾ)
+        el+[δ ∘ γ] (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+        el+ᴾ (δ ∘ γ) (δᴾ γ γᴾ) A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+        m[δ ∘ γ] (mᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+ ≡
+ MaᴾElim P[δ][γ] ((P[δ])ᴾ γ γᴾ)
+        el0[δ][γ] (λ u uᴾ → (el0[δ])ᴾ γ γᴾ u uᴾ)
+        el+[δ][γ]
+        (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+        (el+[δ])ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+        m[δ][γ] ((m[δ])ᴾ γ γᴾ)
+
+ MaᴾElim P[δ ∘ γ] (Pᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+        el0[δ ∘ γ] (λ u uᴾ → el0ᴾ (δ ∘ γ) (δᴾ γ γᴾ) u uᴾ)
+        el+[δ ∘ γ] (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+        el+ᴾ (δ ∘ γ) (δᴾ γ γᴾ) A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+        m[δ ∘ γ] (mᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+ ≡
+ MaᴾElim P[δ ∘ γ] (Pᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+        el0[δ ∘ γ] (λ u uᴾ → el0ᴾ (δ ∘ γ) (δᴾ γ γᴾ) u uᴾ)
+        el+[δ ∘ γ] (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+        el+ᴾ (δ ∘ γ) (δᴾ γ γᴾ) A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+        m[δ ∘ γ] (mᴾ (δ ∘ γ) (δᴾ γ γᴾ))
+\end{verbatim}

@@ -1,0 +1,291 @@
+\chapter{Canonicity of the Mahlo universe}
+
+In this chapter we present our proof of canonicity of the Mahlo universe.
+
+\section{Metatheory}
+
+We work in an extensional type theory with QIITs, we have $\omega+1$ universes with indexed IR \cite{dybjer2006indexed} to express the canonicity predicate for the Mahlo universe. For readability of the proof, the universes are Russell-style with cumulative subtyping and universe polymorphism.
+
+Below we have rules for cumulative subtyping specifying a preorder. The subtyping respects type formers and a smaller universe is a subtype of larges universes. The most important part is that we can implicitly cast types in smaller universes to bigger universes.
+
+\begin{mathpar}
+\inferrule
+    { }
+    {\Gamma \vdash A \leq A}
+\and
+\inferrule
+    {\Gamma \vdash A \leq B \quad \Gamma \vdash B \leq C}
+    {\Gamma \vdash A \leq C}
+\and
+\inferrule
+    {\Gamma \vdash A \leq A' \quad \Gamma \vdash t : A}
+    {\Gamma \vdash t : A'}
+\and
+\inferrule
+    {i \leq j}
+    {\Gamma \vdash (U i) \leq (U j)}
+\and
+\inferrule
+    {\Gamma , x : A \vdash B \leq B'}
+    {\Gamma \vdash (x : A) \rightarrow B \leq (x : A) \rightarrow B'}
+\and
+\end{mathpar}
+
+\section{Syntax}
+
+Our syntax has a Nat-indexed hierarchy of Russell-style universes, where each universe is a Mahlo universe. This could be fairly easily extended with more type formers since gluing is modular with respect to them.
+
+We use Agda-like notation which can be translated to the GAT of CwFs. Further we use some syntactic sugar. Specifically $pᴺ$ for iterated composition of weakenings, $qᴺ=q[pᴺ]$ for an iteratively weakened variable. $t\ \$\$\ u = (app\ t)[id,\ u]$ for function application, note that this is left-associative so we can write $f\ \$\$\ x\ \$\$\ y$ for $(f (x))(y))$. $σ↑$ is used for weakening under a binder $(σ\ ∘\ p, q)$. We use module syntax and implicit arguments but this desugars to explicit arguments and extra function arguments corresponing to module parameters.
+
+\begin{verbatim}
+Con : Set
+Sub : Con → Con → Set
+Ty  : Con → ∀ n → Set
+Tm  : (Γ : Con) → ∀ {n} → Ty Γ n → Set
+
+Π  : {Γ : Con} {i j : MetaNat} → (A : Ty Γ i) → Ty (Γ, A) j
+                                              → Ty Γ (i ⊔ j)
+app : (Tm Γ (Π A B)) → Tm (Γ,A) B
+lam : Tm (Γ,A) B → (Tm Γ (Π A B))
+
+U   : {Γ : Con} (n : MetaNat) → Ty Γ (suc n)
+ElU : {Γ : Con} {n : MetaNat} → Tm Γ (U n) → Ty Γ n
+c   : {Γ : Con} {n : MetaNat} → Ty Γ n → Tm Γ (U n)
+Tm Γ (U n) = Ty Γ n
+UEl t      = t
+c t        = t
+\end{verbatim}
+
+The syntax specifies the sorts, function types and Russell universes, which will become Mahlo once we add the subuniverses. Our Russell universes are specified as Coquand-style universes with extra equations. Since our syntax is a CwF the other rules of CwFs still apply, see Figure \ref{fig:cwf}.
+
+\section{Syntax for the Mahlo universe}
+
+This section contains the syntax for Mahlo subuniverses using CwFs.
+
+\begin{verbatim}
+module Ma
+  {i   : MetaNat}
+  (U0  : Tm Γ (U i))
+  (El0 : Tm Γ (U0 → (U i)))
+  (U+  : Tm Γ ((U i) → (q → (U i)) → (U i)))
+  (El+ : Tm Γ ((U i) → (q → (U i)) → U+ $$ q¹ $$ q → (U i)))
+  where
+
+  Ma   : Tm Γ (U i)
+  (Ma U0 El0 U+ El+)[γ] ≡ Ma U0[γ] El0[γ] U+[γ] El+[γ]
+
+  El0' : Tm Γ U0 → Tm Γ Ma
+  (El0' u)[γ] ≡ (El0' u[γ])
+
+  El+' : (A : Tm Γ Ma) → (B : Tm Γ (El $$ A → Ma))
+        → Tm Γ (U+ $$ (El $$ A) $$ (lam (El[p] $$ (B[p] $$ q))))
+        → Tm Γ Ma
+  (El+' A B C)[γ] ≡ (El+' A[γ] B[γ] C[γ])
+\end{verbatim}
+\newpage
+\begin{verbatim}
+  El   : Tm Γ (Ma → (U i))
+  El $$ (El0' x)     ≡ El0 $$ x
+  El $$ (El+' A B C) ≡ El+ $$ (El $$ A)
+                           $$ (lam (El[p] $$ (B[p] $$ q))) $$ C
+
+  maElim : {j : MetaNat}(P : Tm Γ (Ma → (U j))
+        → Tm Γ (U0 → P $$ (El0' $$ q))
+        → Tm Γ (Ma → P $$ q → (El $$ q¹ → Ma)
+          → (lam (P[p] $$ (q¹ $$ q)))
+          → U+ $$ (El $$ q³) $$ lam (El[p] $$ (q² $$ q))
+          → P $$ (El+' $$ q⁴ $$ q² $$ q)) →
+           (A : Tm Γ Ma) → Tm Γ (P A)
+  maElim P el0 el+ (El0' x)     = el0 $$ x
+  maElim P el0 el+ (El+' a b x) =
+    el+ $$ a $$
+      (maElim P el0 el+ a)
+      $$ b $$
+      (lam (maElim P[p] el0[p] el+[p] (b[p] $$ q)))
+      $$ x
+
+  (maElim P el0 el+ t)[γ] ≡
+          (maElim P[γ] el0[γ] el+[γ] t[γ])
+\end{verbatim}
+
+This follows the Agda definition \ref{fig:mah} but also the Dybjer-Setzer eliminator for IR \cite{dybjer1999finite}.
+
+\section{Canonicity model without the Mahlo universe}
+
+In this section, we describe the canonicity model for our syntax, excluding the Mahlo subuniverses. Any element of syntax with the \texttt{ᴾ} suffix is the canonicity predicate for the element. The proof itself is fairly standard \cite{kaposi2019shallow}. Substitutions and contexts are valid if they are empty or they are an extension of a valid context by a valid term or type respectively. Function types preserve the predicate like in any other proof by logical predicate. A term \texttt{A} with type \texttt{U} is interpreted as a predicate over closed terms of type \texttt{A}. Lastly the \texttt{q} and \texttt{p} behave like a first and second projections from the predicate of the context which again respects the CwF structure. Equations for this part of the syntax are omitted.
+
+In the following, instead of directly specifying the components of the displayed model, we specify the components of its section, which looks like a "recursive" definition, and which is more readable.
+
+\begin{verbatim}
+(Γ : Con)ᴾ     : Sub ∙ Γ → Set ω
+
+(σ : Sub Γ Δ)ᴾ : (γ : Sub ∙ Γ) → Γᴾ γ → Δᴾ (σ ∘ γ)
+
+(A : Ty n Γ)ᴾ  : (γ : Sub ∙ Γ) → Γᴾ γ → Tm ∙ A[γ] → Set n
+
+(t : Tm Γ A)ᴾ  : (γ : Sub ∙ Γ) (γᴾ : Γᴾ γ) → Aᴾ γ γᴾ t[γ]
+
+∙ᴾ : Conᴾ ∙
+∙ᴾ _ = ⊤
+
+(Γ , a)ᴾ : Conᴾ (Γ , a)
+(Γ , A)ᴾ (γ , a) = (γᴾ : Γᴾ γ) × (Aᴾ γ γᴾ a)
+
+εᴾ γ γᴾ = ⊤
+
+(δ , a)ᴾ γ γᴾ = δᴾ γ γᴾ , aᴾ (δ ∘ γ) (δᴾ γ γᴾ)
+
+idᴾ γ γᴾ = γᴾ
+
+pᵖ (γ, α) (γᴾ, αᴾ) = γᴾ
+qᴾ (γ, α) (γᴾ, αᴾ) = αᴾ
+
+(δ ∘ σ)ᴾ γ γᴾ = δᴾ (σᴾ γ γᴾ) (σ ∘ γ)
+
+(A[δ])ᴾ γ γᴾ a = Aᴾ (δ ∘ γ) (δᴾ γ γᴾ) a
+
+(t[δ])ᴾ γ γᴾ = tᴾ (δ ∘ γ) (δᴾ γ γᴾ)
+
+(U i)ᴾ γ γᴾ a  = Tm ∙ (El a) → Set i
+(El a)ᴾ γ γᴾ t = aᴾ γ γᵖ t
+(c a)ᴾ γ γᴾ    = λ t → aᴾ γ γᵖ t
+
+(t : Tm Γ (U j)) → (t[δ]Ty)ᵖ γ γᵖ = (t[δ]Tm)ᵖ γ γᵖ
+
+(Π A B)ᴾ : ∀ γ γᴾ → Tm ∙ (Π A[γ] B[γ↑]) → Set (i ⊔ j)
+(Π A B)ᴾ γ γᴾ f = (a : Tm ∙ A[γ]) (aᴾ : Aᴾ a)
+                       →  Bᴾ (γ, a) (γᴾ, aᴾ) (f $$ a)
+
+(lam f)ᴾ γ γᴾ a aᴾ      = fᴾ (γ, a) (γᴾ, aᴾ)
+(app f)ᴾ (γ, a) (γ, a)ᴾ = fᴾ γ γᴾ a aᴾ
+\end{verbatim}
+
+\section{Predicate for the Mahlo universe}
+
+Here we define the canonicity predicate for the Mahlo universe. Since the Mahlo universe is a strong assumption we need to use indexed IR to define it. The predicate expresses when a term of the Mahlo subuniverse is canonical. We also define the Dybjer-Setzer eliminator for our predicate \cite{dybjer2006indexed}.
+
+Note that \texttt{Maᴾ U0 U0ᴾ...} is not the same as \texttt{(Ma U0 El0 ...)ᴾ}, since the first one is the metatheoretical predicate used to instantiate the gluing model and the other is the thing being instantiated.
+
+\begin{verbatim}
+module {i : MetaNat}
+  (U0   : Tm ∙ (U i))
+  (U0ᴾ  : Tm ∙ U0 → Set i)
+  (El0  : Tm ∙ (U0 → (U i)))
+  (El0ᴾ : (u : Tm ∙ U0) (uᴾ : U0ᴾ u) → Tm ∙ (El0 $$ u) → Set i)
+  (U+   : Tm ∙ ((A : (U i)) → (A → (U i)) → (U i)))
+  (U+ᴾ  : (A : Tm ∙ (U i)) (Aᴾ : Tm ∙ A → Set i)
+           (B : Tm ∙ (A → (U i)))
+           (Bᴾ  : (a : Tm ∙ A)(aᴾ : Aᴾ a) → Tm ∙ (B $$ a) → Set i)
+           → Tm ∙ (U+ $$ A $$ B) → Set i)
+  (El+  : Tm ∙ ({A B} → U+ $$ A $$ B → (U i))
+  (El+ᴾ : (A : Tm ∙ U) (Aᴾ : Tm ∙ A → Set i) (B : Tm ∙ (A → (U i)))
+            (Bᴾ : (a : Tm ∙ A)(aᴾ : Aᴾ a) → Tm ∙ (B $$ a) → Set i)
+            (u+ : Tm ∙ (U+ $$ A $$ B)) → (u+ᴾ : U+ᴾ A Aᴾ B Bᴾ u+)
+                                        → Tm ∙ (El+ $$ u+) → Set i)
+
+data Maᴾ : Tm ∙ (Ma U0 El0 U+ El+) → Set i where
+   El0'ᴾ : (u : Tm ∙ U0) → (U0ᴾ u) → Maᴾ (El0' $$ u)
+   El+'ᴾ : (A : Tm ∙ Ma) → (Aᴾ : Maᴾ A) → (B : Tm ∙ (El $$ A → Ma))
+           → (Bᴾ : Tm ∙ (El $$ A) → Elᴾ A Aᴾ a → Maᴾ (B $$ a))
+           → (C : Tm ∙ (U+ $$ (El $$ A) $$
+                           (lam (El[p] $$ (B[p] $$ q)))))
+           → U+ᴾ (El $$ A) (Elᴾ A Aᴾ) (lam (El[p] $$ (B[p] $$ q)))
+                        (λ a aᴾ → Elᴾ (B $$ a) (Bᴾ a aᴾ)) C
+           → Maᴾ (El+' $$ A $$ B $$ C)
+
+Elᴾ : (u : Tm ∙ (Ma U0 El0 U+ El+)) → (uᴾ : Maᴾ u) → Tm ∙ (El $$ u)
+                                                            → Set i
+Elᴾ m (El0'ᴾ u uᴾ) a             = El0ᴾ u uᴾ a
+Elᴾ m (El+'ᴾ A Aᴾ B Bᴾ u+ u+ᴾ) t =
+              El+ᴾ (El $$ A) (Elᴾ A Aᴾ) (lam (El[p] $$ (B[p] $$ q)))
+             (λ a aᴾ → Elᴾ (B $$ a) (Bᴾ a aᴾ)) u+ u+ᴾ t
+\end{verbatim}
+\newpage
+\begin{verbatim}
+MaᴾElim :
+  {j : MetaNat}
+  → (P : Tm ∙ ((Ma U0 El0 U+ El+) → U j))
+  → (Pᴾ : (m : Tm ∙ (Ma U0 El0 U+ El+))
+    → Maᴾ m → Set j)
+  → Tm ∙ (U0 → P $$ (El0' $$ q))
+  → ((u : Tm ∙ U0) → (uᴾ : U0ᴾ u)
+    → Pᴾ (El0' u) (El0'ᴾ u uᴾ))
+  → Tm ∙ (Ma → P $$ q → (El $$ q¹ → Ma)
+    → (lam (P[p] $$ (q¹ $$ q)))
+    → U+ $$ (El $$ q³) $$ (lam (El[p] $$ q² $$ q))
+    → P $$ (El+' $$ q⁴ $$ q² $$ q) →
+  → ((A : Tm ∙ Ma) → (Aᴾ : Maᴾ A)
+    → (PA  : Tm ∙ (P $$ A))
+    → (PAᴾ : Pᴾ A Aᴾ (P $$ A))
+    → (B : Tm ∙ (El $$ A → Ma))
+    → (Bᴾ : (a : Tm ∙ (El $$ A))
+      → Elᴾ A Aᴾ a → Maᴾ (B $$ a))
+    → (PB  : Tm ∙ (lam (P[p] $$ (q¹ $$ q)))
+    → (PBᴾ : (a : Tm ∙ (El $$ A))
+      → (aᴾ : Elᴾ A Aᴾ a)
+      → Pᴾ (B $$ a) (Bᴾ a aᴾ) (P $$ (B $$ a)))
+    → (C : Tm ∙ (U+ $$ (El $$ A) $$ (lam (El[p] $$ (B[p] $$ q))))
+    → (Cᴾ : U+ᴾ (El $$ A) (Elᴾ A Aᴾ) (lam (El[p] $$ (B[p] $$ q)))
+                     (λ a aᴾ → Elᴾ (B $$ a) (Bᴾ a aᴾ)) C)
+    → Pᴾ (El+' $$ A $$ B $$ C) (El+'ᴾ A Aᴾ B Bᴾ C Cᴾ)) →
+  → (m : Tm ∙ (Ma U0 El0 U+ El+)) → (mᴾ : Maᴾ m)
+  → Pᴾ m mᴾ
+MaᴾElim P Pᴾ pel0 pel0ᴾ pel+ pel+ᵖ m (El0'ᴾ u uᴾ) = pel0ᵖ u uᴾ
+MaᴾElim P Pᴾ pel0 pel0ᵖ pel+ pel+ᵖ m (El+'ᴾ A Aᴾ B Bᴾ C Cᴾ) =
+  pel+ᴾ A Aᴾ (maElim P pel0 pel+ A)
+    (MaᴾElim P Pᴾ pel0 pel0ᴾ pel+ pel+ᴾ A Aᴾ) B Bᴾ
+    (λ a → maElim P pel0 pel+ a)
+    (λ a aᴾ → MaᴾElim P Pᴾ pel0 pel0ᴾ pel+ pel+ᴾ
+              (B $$ a) (Bᴾ a aᴾ))
+    C Cᴾ
+\end{verbatim}
+
+\section{Canonicity model for the Mahlo universe}
+Lastly, we finish the proof by interpreting the syntactic Ma rules using the metatheoretic \texttt{Maᴾ}. Since we set up the predicate similarly to the syntax of the Mahlo universe, the interpretation itself is pretty easy. Note that the proof that the gluing model respects substitution equations, equations defining \texttt{El} and equations defining \texttt{maElim}.These equations are in Appendix \ref{chap:appendix} since they are not very enlightening.
+
+\newpage
+
+\begin{verbatim}
+(Ma U0 El0 U+ El+)ᴾ : (γ : Sub ∙ Γ) → (γᴾ : Γᴾ γ)
+              → Tm ∙ ((Ma U0 El0 U+ El+)[γ]) → Set i
+(Ma U0 El0 U+ El+)ᴾ γ γᴾ t = Maᴾ U0[γ] (U0ᴾ γ γᴾ) El0[γ] (El0ᴾ γ γᴾ)
+                               U+[γ] (U+ᴾ γ γᴾ) El+[γ] (El+ᴾ γ γᴾ) t
+
+(El0' u)ᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ)
+                              → (Ma U0 El0 U+ El+)ᵖ γ γᴾ (El0' u[γ])
+(El0' u)ᴾ γ γᴾ = El0'ᴾ u[γ] (uᴾ γ γᴾ)
+
+(El+' A B C)ᴾ : (γ : Sub ∙ Γ) (γᴾ : Γᴾ γ)
+              → (Ma U0 El0 U+ El+)ᴾ γ γᴾ (U+' {A[γ]} {B[γ]} C[γ])
+(El+' A B C)ᴾ γ γᴾ = El+'ᴾ A[γ] (Aᴾ γ γᴾ)
+                         (λ a -> (app B)[γ,a])
+                         (λ a aᴾ → (Bᴾ γ γᴾ a aᴾ) C[γ] (Cᴾ γ γᴾ)
+
+(El U0 El0 U+ El+ u)ᴾ : (γ : Sub ∙ Γ) → (γᴾ : Γᴾ γ)
+                           → Tm ∙ ((El u)[γ]) → Set i
+(El U0 El0 U+ El+ u)ᴾ γ γᴾ t = Elᴾ U0[γ] (U0ᴾ γ γᴾ) 
+                                   El0[γ] (El0ᴾ γ γᴾ) 
+                                   U+[γ] (U+ᴾ γ γᴾ) 
+                                   El+[γ] (El+ᴾ γ γᴾ) 
+                                   u[γ] (uᴾ γ γᴾ) t
+
+(maElim P el0 el+ m)ᴾ : (γ : Sub · Γ) (γᴾ : Γᴾ γ)
+                                      → Pᴾ γ γᴾ m[γ] (mᴾ γ γᴾ)
+(maElim P el0 el+ m)ᴾ γ γᴾ = MaᴾElim P[γ] (Pᴾ γ γᴾ)
+                    el0[γ]
+                    (λ u uᴾ → el0ᴾ γ γᴾ u uᴾ)
+                    el+[γ]
+                    (λ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ →
+                      el+ᴾ γ γᴾ A Aᴾ PA PAᴾ B Bᴾ PB PBᴾ C Cᴾ)
+                    m[γ] (mᴾ γ γᴾ)
+\end{verbatim}
+
+\section{Canonicity}
+
+To see how this proves canonicity, we take a look at what happens for terms in empty context. As seen below, since \texttt{Sub ∙ ∙} is the empty substitution and a predicate for it is just the unit, the section for \texttt{t} tells us that it reduces to what we defined as values for the type \texttt{A}. This is precisely the statement of canonicity.
+
+\begin{verbatim}
+(t : Tm Γ A)ᴾ : (ε : Sub ∙ ∙)(εᵖ : ∙ᴾ ∙) → Aᴾ ε εᴾ (t[ε])
+
+(t : Tm Γ A)ᴾ ε tt : Aᴾ ε tt t
+\end{verbatim}

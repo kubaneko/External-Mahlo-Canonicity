@@ -1,0 +1,202 @@
+% CREATED BY DAVID FRISK, 2016
+\chapter{Metatheory}
+
+We cannot construct an internal model of a type theory in itself due to the Gödel's Second incompleteness theorem \cite{godel1931formal}. So to prove something about a type theory we need a stronger metatheory (foundations) to express its model. In this chapter, we will describe the metatheory and the basic setup for formalizing the object theory and proving properties about it.
+
+\section{DTT models}
+
+Since we will be doing denotational semantics, we have to introduce mathematical structures that have similar properties as DTT. We will use categories with families for the specification of models and consider the syntax as an initial model, given as a quotient inductive-inductive type.
+
+\subsection{Generalized algebraic theories}
+
+One way to present dependent type theory is to use \emph{Generalized algebraic theories} (GAT) introduced by Cartmell \cite{cartmell1986generalised}. GATs are a generalization of algebraic theories from universal algebra.
+
+Algebraic theories \cite{whitehead1898treatise} are defined by constants, operators and equalities. The example of an algebraic theory below is the SKI  combinator calculus where the combinators are the constants, the only operation is composition and the equalities specify how the combinators compute.
+
+\begin{verbatim}
+Tm      : Set
+S, K, I : Tm
+_∘_     : Tm → Tm → Tm
+
+S ∘ x ∘ y ∘ z = x ∘ z ∘ (y ∘ z)
+K ∘ x ∘ y = y
+I ∘ x = x
+\end{verbatim}
+
+Generalized algebraic theories are an extension of algebraic theories that allows multiple dependent sorts, dependently typed operations and equations. The example of a GAT below is the theory of categories, morphisms can be given as a family of sets indexed by source and target objects, and well-typed composition of morphisms can be stated.
+
+\begin{verbatim}
+O        : Set
+Hom(_,_) : O → O → Set
+
+id       : Hom(x,x)
+
+_∘_      : Hom(y,z) → Hom(x,y) → Hom(x,z)
+
+id ∘ x = x
+x ∘ id = x
+(x ∘ y) ∘ z = x ∘ (y ∘ z)
+\end{verbatim}
+
+\subsection{Categories with families}
+
+Introduced by Dybjer \cite{dybjer1995internal}, \emph{categories with families} (CwFs) are a specification of dependent type theory. We chose CwFs instead of other specifications \cite{awodey2018natural, uemura2023general} mainly because our canonicity proof is based on the paper Gluing for Type Theory \cite{kaposi2019gluing}.
+
+\input{include/CwFs}
+
+ In Figure \ref{fig:cwf} we can see four sorts that is contexts, substitutions, types and terms. Mirroring the DTT rules, contexts can be formed as either empty or extended by a type in the context. Substitutions are similar, but instead of being extended by a type they are extended by a term. CwFs specify how should terms and types be substituted but concrete term and type formers depend on the specific TT. Note that the theory presented by CwFs is already well-typed.
+
+There are two important things to know about CwFs. Firstly, substituting is contravariant, since this allows us to extend substitutions with a term substituted by the original substitution. Secondly, \texttt{p} represents weakening and \texttt{q} represents the de Bruijn index 0. So if we weaken \texttt{q} twice then it is pointing to the third variable in the context counting from the right.
+
+\begin{verbatim}
+swap : Sub (∙,A,B) (∙,B,A)
+swap = ε, q, q[p]
+
+(∙,Bool,Nat)[swap] = (∙,Nat,Bool)
+
+diag : Sub (∙,A) (∙,A,A)
+diag = ε, q, q
+
+(∙,Bool,Bool)[swap] = (∙,Bool)
+\end{verbatim}
+
+In this example we have two different substitutions. The \texttt{swap} substitution takes a context with two variable and swaps them and the \texttt{diag} substitution maps two variables of the same type to the same variable.
+
+\newpage
+
+\subsection{Quotient inductive-inductive types}
+
+\emph{Quotient inductive-inductive types} (QIITs) \cite{altenkirch2018quotient, kaposi2019constructing} allow us to define multiple sorts where later ones can be indexed over the previous ones and also allow for equations on the type. This internalizes GATs into type theory. In particular this allows us to define syntax of type theories quotiented by conversion as we will see in Section \ref{sec:quo}. Below we have an example of a type theory which specifies contexts, the unit type, its term and the fact that all its terms are exactly the unit.
+
+\begin{verbatim}
+data Context : Set where
+    ∙   : Context
+    _,_ : (Γ : Context) → Ty Γ → Context
+
+data Ty : Context → Set where
+    1 : {Γ : Context} → Ty Γ
+
+dat Tm : (Γ : Context) → Ty Γ → Set where
+    () : {Γ : Context} → Tm Γ 1
+    eq : {Γ : Context} (a : Tm Γ 1) → a ≡ ()
+\end{verbatim}
+
+This allows us to have a category of CwFs with an initial object internally to a TT with QIITs.
+
+\section{Proof techniques}
+
+In this section we will introduce some properties one would like to prove about TT. We also give an overview of proof techniques used for this purpose. Finally, we will look at gluing, which is the proof technique we will use for the Mahlo universe.
+
+\subsection{Metatheoretical properties}
+
+Canonicity and normalization are two notable desirable properties of a type theory.
+
+Canonicity means that closed terms are definitionally equal to a term that's only built from contructors. For example, a canonical term of type Nat is a finite application of successor to zero. In particular, the empty type has no constructors, so canonicity implies consistency.
+
+Normalization means that all terms are convertible to a normal form. This usually means either values or a spine of constructors stuck on a variable (neutral term). Normalization is a common method to show that conversion is decidable, which is required for decidable type checking.
+
+\subsection{Proof technique overview}
+
+The technique we will use is categorical gluing \cite{kaposi2019gluing, artin1973theorie}. Gluing is an intrinsic technique quotiented by conversion, based on the logical predicate technique. The goal of this subsection is to explain most of the terms involved in this technique.
+
+\subsubsection{Extrinsic vs. intrinsic}
+
+\textbf{Extrinsic methods} start with untyped syntax. Untyped terms are then constrained by typing and well-formedness relations. This has the benefit of being simpler since the dependent typing is not that heavy and one has a notion of ill-typed terms, which makes it easier for proof assistants \cite{abel2017decidability, carneiro2024lean4lean, adjedj2024martin}.
+
+\textbf{Intrinsic methods} start with well-typed syntax and so do not need to care about ill-typed terms. This allows for shorter proofs with pen and paper, but the large amount of type indexing makes machine-checked formalization harder. CwFs are an example of an intrinsic specification of the sorts and substitutions of a type theory \cite{dybjer1995internal, danielsson2006formalisation, chapman2009type}.
+
+Using extrinsic methods would be somewhat difficult for the Mahlo universe. We cannot use IR to represent a logical relation for the theory like \cite{abel2017decidability}, since that would give us an elimination principle for the Mahlo universe, which would be inconsistent. The proof would also be large.
+
+\subsubsection{Syntax quotiented by conversion}\label{sec:quo}
+
+Quotienting is broadly speaking taking equivalence classes of elements instead of elements themselves based on some structure respecting equivalence. For example, in groups one gets quotients for each normal subgroup.
+
+When we talk about conversion in TT it means definitional equality since terms that are definitionally equal are of the same type and so taking quotient of TT by the equivalence classes defined by the computation rules is a good notion. This in particular means that substitutions compute definitionally in ETT or set theory. GATs and QIITs fall into syntax that is intrinsic and quotiented by conversion \cite{altenkirch2016type}.
+
+The cost of this is that quotients do not behave well in proof assistants and you will either get into transport hell or will have to use even more theory on top \cite{pedrot2020russian, loic2025strict, kaposi2019shallow}.
+
+\subsubsection{Logical predicate}
+
+Logical predicate is a proof technique used for normalization arguments in various type theories. First used by Tait \cite{tait1967intensional}, the technique defines inductively a predicate on the syntax of the type theory.
+
+There are two main ideas of logical predicates. Firstly, function types must preserve the logical predicate, that is, for any normalizing input their output must be also normalizing. Secondly, even if we are only proving canonicity, we still have to handle arbitrary contexts by closing them with closing substitutions. This is due to the fact that to handle the function application case we must have a notion of valid closing substitutions.
+
+\subsection{Gluing}
+
+Our definition of gluing closely follows Gluing for Type Theory \cite{kaposi2019gluing}. In particular, we will use gluing instantiated with the global sections functor, since we are only proving canonicity.
+
+Gluing takes two models and a weak morphism between them and results in a displayed model over the source model. In our case, the source model is the syntax, the weak morphism is the global sections functor, the target model is the standard model and we get canonicity as the unique section from the displayed model into the syntax. In the following subsection we will explain what this means and what is the connection to canonicity.
+
+\subsubsection{Standard model}
+
+The \emph{standard model} interprets every object-theoretic construction with an analogous matatheoretical one.
+
+For example, if we work in Set theory as metatheory, the standard model of a type theory would interpret types as (families of) sets, functions as functions and universes as a suitable set-theoretic notion of universe. On the other hand, if we work in a type theory, the standard model interprets type formers with the same type formers in the metatheory.
+
+\subsubsection{Displayed model}
+
+A \emph{displayed model} over a model \texttt{M} gives a predicate for each sort of a CwF such that each predicate depends on the same sort from \texttt{M} and on the predicate on its indexes and it has to be preserved by all functions and respect all equations.
+
+For example, given a type in \texttt{M} in context $\Gamma$ and the predicate for contexts instantiated with $\Gamma$ we define a predicate for the corresponding \texttt{M} type.
+
+A \emph{section} of a displayed model is a CwF-morphism from \texttt{M} into the displayed model. In particular, if \texttt{M} is the syntax for any displayed model over it the section is unique by initiality of syntax. Having a section for a displayed model means that the elements of \texttt{M} satisfy the predicates over them.
+
+Another example is a displayed model for natural numbers. The first part is a definition of some model of natural numbers. Secondly, we define the \texttt{ᴰ} versions of all of the components of the model are the corresponding components of the displayed model. Lastly, the section \texttt{ˢ} for natural numbers witnesses that the predicate the zero is actually true only for zero and similarly for the successor function.
+
+\begin{verbatim}
+Nat   : Set
+z     : Nat
+succ  : Nat → Nat
+ind   : (C : Nat → Set) → C z →
+         ({n : Nat} → C n → C (succ n))
+         → (n : Nat) → C n
+
+Natᴰ  : Nat → Set
+zᴰ    : Natᴰ z
+succᴰ : (n : Nat) → Nᴰ n → Nᴰ (succ n)
+indᴰ  : (C : (n : Nat) → Natᴰ n → Set) → C z zᴰ
+         → ({n : Nat} → {nᴰ : Natᴰ n}
+            → C n nᴰ → C (succ n) (succᴰ n))
+         →  (n : Nat) → (nᴰ : Natᴰ n) → C n nᴰ
+
+Natˢ  : (n : Nat) → Natᴰ s
+zˢ    : Natˢ z = zᴰ
+sˢ    : (n : Nat) → Natˢ (succ n) = succᴰ n (Natˢ n)
+\end{verbatim}
+
+Notice that the displayed model and the section are precisely the induction principle and the computation rules for natural numbers like in Subsection \ref{sec:nat}. For any algebra the condition that every displayed algebra has a section is precisely the induction principle.
+
+\subsubsection{Global sections functor}
+
+\emph{Weak morphism} is a CwF-morphism that does not preserve contexts up to equality, but up to isomorphism. The global sections functor is one such morphism. While there are more general notions of global sections functors, we will only explain the one which targets the standard model.
+
+The global sections functor maps a context to the set of closed substitutions that target the context. Substitutions are sent into functions that get the closing substitution from their source context and transform it into a closing substitution of the target context by composition with the substitution itself. Types are sent to a function that takes the closing substitution for its context and sends it to terms of the type closed by that substitution. Lastly, terms are sent to functions that get a closing substitution and produces the term closed by that substitution (into the image of its type).
+
+\begin{verbatim}
+(Γ : Con)     → Sub ∙ Γ
+(γ : Sub Γ Δ) → λ δ . γ ∘ δ
+(A : Ty Γ)    → λ δ . Tm ∙ A[δ]
+(t : Tm Γ A)  → λ δ . t[δ]
+\end{verbatim}
+
+Note that the global sections functor is actually a weak morphism since empty context does not get sent to the empty context (which is the singleton set), but to the set of substitutions between empty contexts, which is merely isomorphic by the CwF equation \texttt{εη}.
+
+\subsubsection{Gluing for canonicity}
+
+Gluing defines a displayed model, where for contexts and types, all the arguments from the source model are mapped by the weak morphism, and substitutions and terms preserve the predicate. For example, since in our case the weak morphism is the global sections functor \texttt{F}, instead of \texttt{(Γ : Con) → Set} we get \texttt{F Γ → Set} which computes to \texttt{Sub ∙ Γ → Set}.
+
+Unfolding the definition for all the sorts leads to the following definitions. Contexts are interpreted as predicates over closing substitutions. Substitutions respect that predicate. Types for a closed term define a predicate for when a term of the type is a value. Lastly, terms must respect the predicates. For booleans we say that a term is a value if it is \texttt{true} or \texttt{false} and it is obvious that the term true fulfills the predicate.
+
+\begin{verbatim}
+Conᴾ Γ      = Sub ∙ Γ → Set
+Subᴾ Γ Δ σ  = (γ : Sub ∙ Γ) → Γᴾ γ → Δᴾ (σ ∘ γ)
+Tyᴾ Γ A     = (γ : Sub ∙ Γ) → Γᴾ γ → Tm ∙ (A[γ]) → Set
+Tmᴾ Γ A t   = (γ : Sub ∙ Γ)(γᵖ : Γᴾ γ) → Aᴾ γ γᴾ (t[γ])
+
+Boolᴾ _ _ t = (t ≡ true) + (t ≡ false)
+trueᵖ _ _   = inl refl
+\end{verbatim}
+
+The induction principle then yields a section of the displayed model, which implies that all elements of the syntax satisfy the canonicity predicates.
+
+In the rest of the thesis, the syntax we will be using is that the canonicity predicate of a element of syntax \texttt{t} is \texttt{tᴾ} like in the example above and since this is defined inductively all the subterms of \texttt{t} satisfy the canonicity predicate.
